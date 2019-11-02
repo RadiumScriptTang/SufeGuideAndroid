@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="distance_options">
+        <item>200m</item>
+        <item>500m</item>
+        <item>1km</item>
+    </array>
+</resources>

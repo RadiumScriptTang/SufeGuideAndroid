@@ -30,4 +30,5 @@ dependencies {
     implementation files('libs/BaiduLBS_Android.jar')
     implementation files('libs/component_common_sdk_1.1.0.jar')
     implementation 'com.alibaba:fastjson:1.1.54.android'
+    implementation 'com.github.warkiz.widget:indicatorseekbar:1.1.2'
 }

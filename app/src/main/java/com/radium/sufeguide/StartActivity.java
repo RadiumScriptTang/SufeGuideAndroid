@@ -1,33 +1,35 @@
 package com.radium.sufeguide;
 
-import android.app.Activity;
+import android.Manifest;
+import android.app.Application;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import com.radium.sufeguide.test.TestActivity;
+import com.radium.sufeguide.main.TestActivity;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,9 +37,23 @@ import java.util.Map;
 
 
 
+
+
 public class StartActivity extends AppCompatActivity {
     private String response;
     private Map<String ,String > param;
+
+    //读写权限
+    private static String[] PERMISSIONS_STORAGE = {
+            "Manifest.permission.READ_EXTERNAL_STORAGE",
+            "Manifest.permission.WRITE_EXTERNAL_STORAGE"
+    };
+    //请求状态码
+    private static int REQUEST_PERMISSION_CODE = 1;
+    private int requestCode;
+    private String[] permissions;
+    private int[] grantResults;
+
     public static String getFileMD5(FileInputStream in, String algorithm) {
 
         MessageDigest digest = null;
@@ -61,6 +77,12 @@ public class StartActivity extends AppCompatActivity {
     Thread enterMainThread = new Thread(new Runnable() {
         @Override
         public void run() {
+            downloadThread.start();
+            try {
+                downloadThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             Intent intent = new Intent(getApplicationContext(), TestActivity.class);
             startActivity(intent);
             finish();
@@ -131,20 +153,87 @@ public class StartActivity extends AppCompatActivity {
                 e.printStackTrace();
                 downloadThread.start();
             }
+            Log.e("radium","核对完成！");
         }
     });
+
+    @Override
+    protected void onStart(){
+        checkPermission();
+        super.onStart();
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_start);
-
-        checkThread.start();
-        while (checkThread.isAlive()){
-
+        if((getIntent().getFlags() & Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT) != 0){
+            finish();
+            return;
         }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);//隐藏状态栏
+        setContentView(R.layout.activity_start);
+//        try {
+//            checkThread.start();
+//            checkThread.join();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+
         enterMainThread.start();
 
 
+    }
+
+    public void checkPermission()
+    {
+        int targetSdkVersion = 0;
+        String[] PermissionString={Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.CAMERA,Manifest.permission.ACCESS_FINE_LOCATION};
+        try {
+            final PackageInfo info = this.getPackageManager().getPackageInfo(this.getPackageName(), 0);
+            targetSdkVersion = info.applicationInfo.targetSdkVersion;//获取应用的Target版本
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+//            Log.e("err", "检查权限_err0");
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            //Build.VERSION.SDK_INT是获取当前手机版本 Build.VERSION_CODES.M为6.0系统
+            //如果系统>=6.0
+            if (targetSdkVersion >= Build.VERSION_CODES.M) {
+                //第 1 步: 检查是否有相应的权限
+                boolean isAllGranted = checkPermissionAllGranted(PermissionString);
+                if (isAllGranted) {
+                    //Log.e("err","所有权限已经授权！");
+                    return;
+                }
+                // 一次请求多个权限, 如果其他有权限是已经授予的将会自动忽略掉
+                ActivityCompat.requestPermissions(this,
+                        PermissionString, 1);
+            }
+        }
+    }
+
+    /**
+     * 检查是否拥有指定的所有权限
+     */
+    private boolean checkPermissionAllGranted(String[] permissions) {
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                // 只要有一个权限没有被授予, 则直接返回 false
+                //Log.e("err","权限"+permission+"没有授权");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //申请权限结果返回处理
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+    }
+    private void f(){
     }
 }

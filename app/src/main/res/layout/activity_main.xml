@@ -26,13 +26,7 @@
             android:src="@mipmap/gps"
             tools:ignore="MissingConstraints"
             />
-        <Button
-            android:id="@+id/temp_skip_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="走"
-            android:layout_toRightOf="@+id/bmap_location"
-            android:layout_alignParentBottom="true"/>
+
     </RelativeLayout>
     <SearchView
         android:id="@+id/search_input"

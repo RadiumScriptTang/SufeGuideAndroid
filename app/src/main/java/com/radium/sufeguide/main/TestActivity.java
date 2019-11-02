@@ -1,6 +1,7 @@
-package com.radium.sufeguide.test;
+package com.radium.sufeguide.main;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -9,19 +10,25 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
-import android.widget.Button;
+import android.widget.Toast;
 
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.radium.sufeguide.R;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+
+import map.baidu.ar.model.ArLatLng;
+import map.baidu.ar.model.ArPoiInfo;
+import map.baidu.ar.model.PoiInfoImpl;
 
 public class TestActivity extends AppCompatActivity {
     public static JSONArray locationsArray;
@@ -30,20 +37,13 @@ public class TestActivity extends AppCompatActivity {
     private FragmentTransaction fragmentTransaction;
     private MapFragment mapFragment = new MapFragment();
     private ArFragment arFragment = new ArFragment();
+
+    private Sensor orientationSensor = null;
     private SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
-                accValues = event.values.clone();
-            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
-                magValue = event.values.clone();
-            }
-            float [] r = new float[9];
-            float [] values = new float[3];
-            SensorManager.getRotationMatrix(r,null,accValues,magValue);
-            SensorManager.getOrientation(r,values);
-            float xAngel = (float) Math.abs(Math.toDegrees(values[1]));
             FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            float xAngel =  Math.abs((float) (Math.round(event.values[1] * 100)) / 100);
             if (xAngel > 60){
                 arFragment.resuemCam();
                 ft.hide(mapFragment).show(arFragment).commit();
@@ -103,8 +103,15 @@ public class TestActivity extends AppCompatActivity {
         fragmentTransaction.hide(arFragment).show(mapFragment).commit();
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        sensorManager.registerListener(sensorEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(sensorEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
+        orientationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+        sensorManager.registerListener(sensorEventListener,orientationSensor,SensorManager.SENSOR_DELAY_GAME);
 
+
+//        startService(new Intent(this, MyService.class));
     }
+
+
+
+
+
 }

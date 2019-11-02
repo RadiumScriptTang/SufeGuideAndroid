@@ -1,15 +1,26 @@
 package com.radium.sufeguide.application;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baidu.location.BDLocation;
 import com.baidu.mapapi.CoordType;
 import com.baidu.mapapi.SDKInitializer;
+import com.baidu.mapapi.model.LatLng;
+import com.radium.sufeguide.main.ArFragment;
+import com.radium.sufeguide.main.TestActivity;
 import com.radium.sufeguide.utils.LocSdkClient;
 
 import android.app.Application;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+
 import map.baidu.ar.init.ArSdkManager;
 import map.baidu.ar.init.MKGeneralListener;
+import map.baidu.ar.model.ArLatLng;
+import map.baidu.ar.model.ArPoiInfo;
+import map.baidu.ar.model.PoiInfoImpl;
 import map.baidu.ar.utils.ArBDLocation;
+import map.baidu.ar.utils.DistanceByMcUtils;
 
 /**
  * Ar sdk application
@@ -21,6 +32,7 @@ public class App extends Application {
 
     @Override
     public void onCreate() {
+
         super.onCreate();
         mInstance = this;
         // ArSDK模块初始化
@@ -69,8 +81,11 @@ public class App extends Application {
             // 设置经纬度信息
             arBDLocation.setLongitude(location.getLongitude());
             arBDLocation.setLatitude(location.getLatitude());
+
             return arBDLocation;
         }
+
     }
+
 
 }

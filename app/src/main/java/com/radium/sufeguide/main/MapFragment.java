@@ -1,50 +1,42 @@
-package com.radium.sufeguide;
+package com.radium.sufeguide.main;
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
-import android.location.Location;
-import android.location.LocationListener;
+import android.content.Context;
 import android.location.LocationManager;
-import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.WindowManager;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.SearchView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
-
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
-import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
-import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
 import com.baidu.mapapi.map.MapStatus;
-import com.baidu.mapapi.map.MapStatusUpdate;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
 import com.baidu.mapapi.map.MarkerOptions;
 import com.baidu.mapapi.map.MyLocationData;
-import com.baidu.mapapi.map.Overlay;
 import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.overlayutil.WalkingRouteOverlay;
@@ -56,22 +48,24 @@ import com.baidu.mapapi.search.route.OnGetRoutePlanResultListener;
 import com.baidu.mapapi.search.route.PlanNode;
 import com.baidu.mapapi.search.route.RoutePlanSearch;
 import com.baidu.mapapi.search.route.TransitRouteResult;
-import com.baidu.mapapi.search.route.WalkingRouteLine;
 import com.baidu.mapapi.search.route.WalkingRoutePlanOption;
 import com.baidu.mapapi.search.route.WalkingRouteResult;
-
-
-import com.alibaba.fastjson.JSONArray;
+import com.google.gson.JsonObject;
+import com.radium.sufeguide.R;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+import map.baidu.ar.model.ArLatLng;
+import map.baidu.ar.model.ArPoiInfo;
+import map.baidu.ar.model.PoiInfoImpl;
+import map.baidu.ar.utils.DistanceByMcUtils;
+
+public class MapFragment extends Fragment {
+
     //视图对象
     private MapView mapView = null;
     private ImageButton centerLocationBtn = null;
@@ -90,15 +84,118 @@ public class MainActivity extends AppCompatActivity {
     private double selectedLocationLat;
     private double selectedLocationLng;
 
-    private void initTempTest(){
-        Button tempBtn = findViewById(R.id.temp_skip_btn);
-        tempBtn.setOnClickListener(new View.OnClickListener() {
+    private MyAdapter myAdapter;
+
+
+    private class MyAdapter extends BaseAdapter implements Filterable {
+
+        private Context context;
+        private MyFilter myFilter;
+        private JSONArray jsonArray;
+        private JSONArray originalJsonArray;
+
+        private class MyFilter extends Filter {
+            private String prefix;
+
             @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getApplicationContext(),ArActivity.class);
-                startActivity(intent);
+            protected FilterResults performFiltering(CharSequence constraint) {
+                FilterResults filterResults = new FilterResults();
+                JSONArray j = new JSONArray();
+
+                prefix = (String) constraint;
+                if (prefix == null || prefix.length() == 0){
+                    filterResults.count = originalJsonArray.size();
+                    filterResults.values = originalJsonArray;
+                    return filterResults;
+                }
+
+                for(int i = 0; i < originalJsonArray.size(); i++){
+                    JSONObject o = originalJsonArray.getJSONObject(i);
+                    if (filterKernel(o.getString("locationName")) || filterKernel(o.getString("locationDetail"))){
+                        j.add(o);
+                    }
+                }
+                filterResults.values = j;
+                filterResults.count = j.size();
+                Log.e("radium:jsonAfterFilter",j.toJSONString());
+                return filterResults;
             }
-        });
+
+            @Override
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                JSONArray j = (JSONArray) results.values;
+                if (j == null){
+                    Log.e("radium","null pointer gotten");
+                } else {
+                    Log.e("radium",j.toJSONString());
+                    jsonArray = j;
+                }
+                if (results.count > 0){
+                    notifyDataSetChanged();
+                } else {
+                    notifyDataSetInvalidated();
+                }
+            }
+
+            private boolean filterKernel(String string){
+                int i = 0;
+                int j = 0;
+                if (string.length() < 1){
+                    return false;
+                }
+                string += string.charAt(string.length() - 1);
+                while (j < prefix.length()){
+                    while (i < string.length() && string.charAt(i++) != prefix.charAt(j)){
+
+                    }
+                    j++;
+                }
+                return i < string.length();
+            }
+        }
+
+        public MyAdapter(Context context, JSONArray jsonArray){
+            this.context = context;
+            this.jsonArray = (JSONArray) jsonArray.clone();
+            this.originalJsonArray = (JSONArray) jsonArray.clone();
+            this.myFilter = new MyFilter();
+        }
+
+        @Override
+        public int getCount() {
+            return jsonArray.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return jsonArray.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        public JSONObject getItemAtPosition(int p){
+            return (JSONObject) jsonArray.get(p);
+        }
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            RelativeLayout item;
+            item = (RelativeLayout) LayoutInflater.from(context).inflate(R.layout.search_list_view_item,parent,false);
+            TextView t1 = item.findViewById(R.id.search_list_view_name);
+            TextView t2 = item.findViewById(R.id.search_list_view_include);
+            JSONObject jsonObject = (JSONObject) jsonArray.get(position);
+            t1.setText(jsonObject.getString("locationName"));
+            t2.setText(jsonObject.getString("locationDetail"));
+
+            return item;
+        }
+
+        @Override
+        public Filter getFilter() {
+            return this.myFilter;
+        }
     }
 
     private class MyLocationListener extends BDAbstractLocationListener {
@@ -122,11 +219,30 @@ public class MainActivity extends AppCompatActivity {
                 MapStatus mapStatus = new MapStatus.Builder().target(p).zoom(18).build();
                 mapObj.setMapStatus(MapStatusUpdateFactory.newMapStatus(mapStatus));
             }
+            initArPoints(myLat,myLng);
+        }
+        private void initArPoints(double lat, double lng){
+            ArFragment.poiInfos = new ArrayList<>();
+            for (int i = 0; i < TestActivity.locationsArray.size(); i++){
+                JSONObject jsonObject = (JSONObject) TestActivity.locationsArray.get(i);
+                ArPoiInfo info = new ArPoiInfo();
+                info.name = jsonObject.getString("locationName");
+                double local_lat = jsonObject.getDouble("locationLat");
+                double local_lng = jsonObject.getDouble("locationLng");
+
+                double distance = DistanceByMcUtils.getDistanceByLL(local_lat,local_lng,lat,lng);
+                if (distance < ArFragment.visibleDistance){
+                    info.location = new ArLatLng(local_lat,local_lng);
+                    info.city = jsonObject.getString("locationDetail");
+                    PoiInfoImpl poiInfo = new PoiInfoImpl();
+                    poiInfo.setPoiInfo(info);
+                    ArFragment.poiInfos.add(poiInfo);
+                }
+
+            }
         }
     }
 
-    //定位管理
-    private LocationManager locationManager = null;
 
     //路线规划对象
     private RoutePlanSearch mSearch = null;
@@ -137,27 +253,18 @@ public class MainActivity extends AppCompatActivity {
     private SimpleAdapter getSimpleAdapter() {
         FileInputStream fis = null;
         List<HashMap<String, Object>> list = new ArrayList<>();
-        try {
-            fis = openFileInput("上海财经大学国定路校区");
-            byte[] temp = new byte[fis.available()];
-            fis.read(temp);
-            String jsonString = new String(temp);
-            JSONArray jsonArray = JSONArray.parseArray(jsonString);
-            for (int i = 0; i < jsonArray.size(); i++) {
-                JSONObject location = (JSONObject) jsonArray.get(i);
-                HashMap<String, Object> map = new HashMap<>();
-                map.put("name", location.get("locationName"));
-                map.put("include", location.getString("locationDetail"));
-                map.put("lat", location.getDouble("locationLat"));
-                map.put("lng", location.getDouble("locationLng"));
-                list.add(map);
-            }
-            Log.e("radium Json:", jsonArray.toString());
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        JSONArray jsonArray = TestActivity.locationsArray;
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JSONObject location = (JSONObject) jsonArray.get(i);
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("name", location.get("locationName"));
+            map.put("include", location.getString("locationDetail"));
+            map.put("lat", location.getDouble("locationLat"));
+            map.put("lng", location.getDouble("locationLng"));
+            list.add(map);
         }
+
 
 //        String [] names = {"SIME","21 Building"};
 //        String [] include = {"向老师办公室","雷帅实验室"};
@@ -173,21 +280,21 @@ public class MainActivity extends AppCompatActivity {
 //            list.add(map);
 //        }
 
-        return new SimpleAdapter(getApplicationContext(), list, R.layout.search_list_view_item, new String[]{"name", "include"}, new int[]{R.id.search_list_view_name, R.id.search_list_view_include});
+        return new SimpleAdapter(getActivity().getApplicationContext(), list, R.layout.search_list_view_item, new String[]{"name", "include"}, new int[]{R.id.search_list_view_name, R.id.search_list_view_include});
     }
 
     //获取视图对象
-    private void findViews() {
-        mapView = findViewById(R.id.bmap);
-        centerLocationBtn = findViewById(R.id.bmap_location);
+    private void findViews(View view) {
+        mapView = view.findViewById(R.id.bmap);
+        centerLocationBtn = view.findViewById(R.id.bmap_location);
 
-        searchView = findViewById(R.id.search_input);
-        searchResultListView = findViewById(R.id.search_result_listview);
+        searchView = view.findViewById(R.id.search_input);
+        searchResultListView = view.findViewById(R.id.search_result_listview);
 
-        selectedLocationInfo = findViewById(R.id.selected_location_info);
-        selectedLocationName = findViewById(R.id.selected_location_name);
-        selectedLocationDistanceAndInclude = findViewById(R.id.selected_location_distance_and_include);
-        selectedLocationFindRouteBtn = findViewById(R.id.selected_location_find_route_btn);
+        selectedLocationInfo = view.findViewById(R.id.selected_location_info);
+        selectedLocationName = view.findViewById(R.id.selected_location_name);
+        selectedLocationDistanceAndInclude = view.findViewById(R.id.selected_location_distance_and_include);
+        selectedLocationFindRouteBtn = view.findViewById(R.id.selected_location_find_route_btn);
 
     }
 
@@ -196,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
         mapObj = mapView.getMap();
         mapObj.setMyLocationEnabled(true);
 
-        mLocationClient = new LocationClient(this);
+        mLocationClient = new LocationClient(getActivity());
 
 //通过LocationClientOption设置LocationClient相关参数
         LocationClientOption option = new LocationClientOption();
@@ -226,6 +333,10 @@ public class MainActivity extends AppCompatActivity {
         selectedLocationInfo.setVisibility(View.GONE);
         //  初始化适配器
         searchResultListViewAdpater = getSimpleAdapter();
+
+        //测试新适配器
+        myAdapter = new MyAdapter(getActivity(),TestActivity.locationsArray);
+        searchResultListView.setAdapter(myAdapter);
     }
 
     //测试跳转
@@ -236,31 +347,27 @@ public class MainActivity extends AppCompatActivity {
         selectedLocationDistanceAndInclude.setText(distance + "|" + include);
     }
 
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.activity_main, null);
+        return view;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        SDKInitializer.initialize(getApplicationContext());
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        //设置视图
-        setContentView(R.layout.activity_main);
-        //获取视图对象
-        findViews();
-        //初始化地图、定位
-        initMap();
-        //初始化视图对象
+    public void onStart() {
+        super.onStart();
+        findViews(getView());
         initViews();
-        //初始化location manager
-//        initLcoationManager();
-        //启用测试
-        initTempTest();
+        initMap();
+
+
 
         mSearch = RoutePlanSearch.newInstance();
         mSearch.setOnGetRoutePlanResultListener(new OnGetRoutePlanResultListener() {
             @Override
             public void onGetWalkingRouteResult(WalkingRouteResult walkingRouteResult) {
                 if (walkingRouteResult.getRouteLines() == null){
-                    Log.e("radium",walkingRouteResult.error.toString());
                     return;
                 }
                 Log.i("radium",walkingRouteResult.getRouteLines().toString());
@@ -317,9 +424,9 @@ public class MainActivity extends AppCompatActivity {
         searchResultListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Map<String ,Object> map = (Map<String,Object>) adapterView.getItemAtPosition(i);
-                double lat = (double) map.get("lat");
-                double lng = (double) map.get("lng");
+                JSONObject object = (JSONObject) myAdapter.getItem(i);
+                double lat = object.getDouble("locationLat");
+                double lng = object.getDouble("locationLng");
                 LatLng point = new LatLng(lat,lng);
                 BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.mipmap.location);
                 OverlayOptions options = new MarkerOptions().position(point).icon(bitmapDescriptor);
@@ -328,9 +435,9 @@ public class MainActivity extends AppCompatActivity {
                 mapObj.setMapStatus(MapStatusUpdateFactory.newLatLng(point));
                 searchView.clearFocus();
                 searchResultListView.setVisibility(View.INVISIBLE);
-                setTextForSelectedLocationInfo(map.get("name").toString(),map.get("include").toString(),"500米");
+                setTextForSelectedLocationInfo(object.getString("locationName"),object.getString("locationDetail"),String.valueOf(Math.floor(DistanceByMcUtils.getDistanceByLL(myLat,myLng,lat,lng))) + "米");
                 selectedLocationInfo.setVisibility(View.VISIBLE);
-                searchView.setQueryHint(map.get("name").toString());
+                searchView.setQueryHint(object.getString("locationName").toString());
 
                 selectedLocationLat = lat;
                 selectedLocationLng = lng;
@@ -341,7 +448,6 @@ public class MainActivity extends AppCompatActivity {
         searchView.setOnCloseListener(new SearchView.OnCloseListener() {
             @Override
             public boolean onClose() {
-                searchResultListView.setAdapter(null);
                 searchResultListView.setVisibility(View.INVISIBLE);
                 selectedLocationInfo.setVisibility(View.GONE);
                 mapObj.clear();
@@ -362,7 +468,6 @@ public class MainActivity extends AppCompatActivity {
         searchView.setOnSearchClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                searchResultListView.setAdapter(searchResultListViewAdpater);
                 searchResultListView.setVisibility(View.VISIBLE);
             }
         });
@@ -376,9 +481,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onQueryTextChange(String s) {
                 if(!TextUtils.isEmpty(s)){
-                    searchResultListView.setFilterText(s);
+                    myAdapter.getFilter().filter(s);
                 } else {
-                    searchResultListView.clearTextFilter();
+                    myAdapter.getFilter().filter(null);
                 }
                 return false;
             }
@@ -392,10 +497,11 @@ public class MainActivity extends AppCompatActivity {
                 mapObj.animateMapStatus(MapStatusUpdateFactory.newLatLng(new LatLng(myLat, myLng)));
             }
         });
-
     }
 
-
-
-
+    @Override
+    public void onPause() {
+        super.onPause();
+        mapView.onPause();
+    }
 }

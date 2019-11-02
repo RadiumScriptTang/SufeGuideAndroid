@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_gravity="bottom">
 
     <RelativeLayout
         android:id="@+id/cam_rl"
@@ -15,5 +18,67 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         />
+
+
+    <LinearLayout
+        android:id="@+id/distanc_option_layout"
+        android:layout_above="@+id/detail_relative_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:orientation="horizontal">
+        <TextView
+            android:textColor="#ffffff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ar地标范围"/>
+        <com.warkiz.widget.IndicatorSeekBar
+            android:id="@+id/seek_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:ignore="MissingConstraints"
+            app:isb_max="3"
+            app:isb_tick_type="oval"
+            app:isb_min="1"
+            app:isb_tick_num="3"
+            app:isb_progress="3"
+            app:isb_seek_bar_type="discrete_ticks_texts"
+            app:isb_text_array="@array/distance_options"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="20dp"
+            />
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/detail_relative_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#ffffff"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/detail_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="信息管理与工程学院"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/close_detail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:text="×"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/detail_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/detail_name"
+            android:text="信息管理与工程学院是一个自称很厉害的学院。信息学院一位领导人曾私下表示，信息学院的研究生水平与北大研究生的水平应该是差不多的，至于真的假的，谁知道呢" />
+    </RelativeLayout>
+
 
 </RelativeLayout>

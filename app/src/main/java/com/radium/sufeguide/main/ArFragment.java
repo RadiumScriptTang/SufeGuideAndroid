@@ -1,20 +1,22 @@
-package com.radium.sufeguide.test;
+package com.radium.sufeguide.main;
 
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
-import android.widget.AdapterView;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.alibaba.fastjson.JSONObject;
 import com.radium.sufeguide.R;
+import com.warkiz.widget.IndicatorSeekBar;
 
 import java.util.ArrayList;
 
@@ -24,13 +26,24 @@ import map.baidu.ar.camera.find.FindArCamGLView;
 import map.baidu.ar.model.ArLatLng;
 import map.baidu.ar.model.ArPoiInfo;
 import map.baidu.ar.model.PoiInfoImpl;
+import map.baidu.ar.utils.DistanceByMcUtils;
 import map.baidu.ar.utils.TypeUtils;
 
 public class ArFragment extends Fragment {
 
+    public static ArrayList<PoiInfoImpl> poiInfos;
+    public static double visibleDistance = 1000d;
+    public static double [] distanceOptions = {200.0, 500.0, 1000.0};
+
+    private IndicatorSeekBar indicatorSeekBar;
+    private RelativeLayout detailRelativeLayout;
+    private TextView closeDetail;
+    private LinearLayout distanceOptionLayout;
+    private TextView detailName;
+    private TextView detailContent;
+
     private RelativeLayout camRl;
     private FindArCamGLView mCamGLView;
-    public static ArrayList<PoiInfoImpl> poiInfos;
     private RelativeLayout mArPoiItemRl;
     private SimpleSensor mSensor;
     private ArPageListener onSelectedNodeListener = new ArPageListener() {
@@ -41,7 +54,16 @@ public class ArFragment extends Fragment {
 
         @Override
         public void selectItem(Object o) {
-            Toast.makeText(getActivity(),"点击事件",Toast.LENGTH_LONG).show();
+            if (o instanceof  PoiInfoImpl){
+                PoiInfoImpl poiInfo = (PoiInfoImpl) o;
+                ArPoiInfo arPoiInfo = poiInfo.getPoiInfo();
+//                Toast.makeText(getActivity(),arPoiInfo.city,Toast.LENGTH_LONG).show();
+                detailName.setText(arPoiInfo.name);
+                detailContent.setText(arPoiInfo.city);
+                detailRelativeLayout.animate().translationY(0).start();
+                distanceOptionLayout.animate().translationY(0).start();
+
+            }
         }
     };
 
@@ -71,6 +93,43 @@ public class ArFragment extends Fragment {
         camRl.addView(mCamGLView);
         initSensor();
         // 保持屏幕不锁屏
+        indicatorSeekBar = getView().findViewById(R.id.seek_bar);
+        indicatorSeekBar.setOnSeekChangeListener(new IndicatorSeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(IndicatorSeekBar seekBar, int progress, float progressFloat, boolean fromUserTouch) {
+                ArFragment.visibleDistance = ArFragment.distanceOptions[progress - 1];
+            }
+
+            @Override
+            public void onSectionChanged(IndicatorSeekBar seekBar, int thumbPosOnTick, String tickBelowText, boolean fromUserTouch) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(IndicatorSeekBar seekBar, int thumbPosOnTick) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(IndicatorSeekBar seekBar) {
+
+            }
+        });
+
+        detailRelativeLayout = getView().findViewById(R.id.detail_relative_layout);
+        closeDetail = getView().findViewById(R.id.close_detail);
+        distanceOptionLayout = getView().findViewById(R.id.distanc_option_layout);
+        detailName = getView().findViewById(R.id.detail_name);
+        detailContent = getView().findViewById(R.id.detail_content);
+
+        closeDetail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                detailRelativeLayout.animate().translationY(detailRelativeLayout.getHeight()).start();
+                distanceOptionLayout.animate().translationY(detailRelativeLayout.getHeight()).start();
+
+            }
+        });
     }
 
     private void initSensor() {
@@ -78,6 +137,7 @@ public class ArFragment extends Fragment {
             mSensor = new SimpleSensor(getActivity(), new HoldPositionListenerImp());
         }
         mSensor.startSensor();
+
     }
 
     private class HoldPositionListenerImp implements SimpleSensor.OnHoldPositionListener {
@@ -86,7 +146,6 @@ public class ArFragment extends Fragment {
             if (mCamGLView != null && mArPoiItemRl != null) {
                 if (poiInfos.size() <= 0) {
                     mArPoiItemRl.setVisibility(View.GONE);
-                    Toast.makeText(getActivity(), "附近没有可识别的类别", Toast.LENGTH_LONG).show();
                 } else {
                     mCamGLView.setFindArSensorState(remapValue, getLayoutInflater(),
                             mArPoiItemRl, onSelectedNodeListener, poiInfos, getActivity());
@@ -124,7 +183,6 @@ public class ArFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        finishCamInternal();
     }
     @Nullable
     @Override
@@ -135,19 +193,7 @@ public class ArFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        poiInfos = new ArrayList<>();
-
-        for (int i = 0; i < TestActivity.locationsArray.size(); i++){
-            JSONObject jsonObject = (JSONObject) TestActivity.locationsArray.get(i);
-            ArPoiInfo info = new ArPoiInfo();
-            info.name = jsonObject.getString("locationName");
-            double local_lat = jsonObject.getDouble("locationLat");
-            double local_lng = jsonObject.getDouble("locationLng");
-            info.location = new ArLatLng(local_lat,local_lng);
-            PoiInfoImpl poiInfo = new PoiInfoImpl();
-            poiInfo.setPoiInfo(info);
-            poiInfos.add(poiInfo);
-        }
+        ArFragment.poiInfos = new ArrayList<>();
         mArPoiItemRl = (RelativeLayout) getView().findViewById(R.id.ar_poi_item_rl);
         mArPoiItemRl.setVisibility(View.VISIBLE);
         initView();
