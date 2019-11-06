@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.ViewDragHelper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +35,7 @@ public class ArFragment extends Fragment {
 
     public static ArrayList<PoiInfoImpl> poiInfos;
     public static double visibleDistance = 1000d;
+    public static int seekBarProgress = 1;
     public static double [] distanceOptions = {200.0, 500.0, 1000.0};
 
     private IndicatorSeekBar indicatorSeekBar;
@@ -60,9 +63,9 @@ public class ArFragment extends Fragment {
 //                Toast.makeText(getActivity(),arPoiInfo.city,Toast.LENGTH_LONG).show();
                 detailName.setText(arPoiInfo.name);
                 detailContent.setText(arPoiInfo.city);
+                detailRelativeLayout.setVisibility(View.VISIBLE);
                 detailRelativeLayout.animate().translationY(0).start();
                 distanceOptionLayout.animate().translationY(0).start();
-
             }
         }
     };
@@ -98,6 +101,7 @@ public class ArFragment extends Fragment {
             @Override
             public void onProgressChanged(IndicatorSeekBar seekBar, int progress, float progressFloat, boolean fromUserTouch) {
                 ArFragment.visibleDistance = ArFragment.distanceOptions[progress - 1];
+                seekBarProgress = progress;
             }
 
             @Override
@@ -122,12 +126,13 @@ public class ArFragment extends Fragment {
         detailName = getView().findViewById(R.id.detail_name);
         detailContent = getView().findViewById(R.id.detail_content);
 
+
+
         closeDetail.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 detailRelativeLayout.animate().translationY(detailRelativeLayout.getHeight()).start();
                 distanceOptionLayout.animate().translationY(detailRelativeLayout.getHeight()).start();
-
             }
         });
     }
@@ -156,10 +161,14 @@ public class ArFragment extends Fragment {
     }
 
     public void pauseCam(){
-        mCamGLView.setVisibility(View.INVISIBLE);
+        if (mCamGLView != null){
+            mCamGLView.setVisibility(View.GONE);
+        }
     }
     public void resuemCam(){
-        mCamGLView.setVisibility(View.VISIBLE);
+        if (mCamGLView != null){
+            mCamGLView.setVisibility(View.VISIBLE);
+        }
     }
     private void finishCamInternal() {
         if (mCamGLView != null) {
@@ -183,6 +192,7 @@ public class ArFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        finishCamInternal();
     }
     @Nullable
     @Override
@@ -197,5 +207,18 @@ public class ArFragment extends Fragment {
         mArPoiItemRl = (RelativeLayout) getView().findViewById(R.id.ar_poi_item_rl);
         mArPoiItemRl.setVisibility(View.VISIBLE);
         initView();
+        indicatorSeekBar.setProgress(seekBarProgress);
+        detailRelativeLayout.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        finishCamInternal();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
     }
 }

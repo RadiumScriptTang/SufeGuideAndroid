@@ -29,10 +29,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <service
-            android:name=".main.MyService"
-            android:enabled="true"
-            android:exported="true"></service>
 
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
@@ -53,7 +49,12 @@
         </activity>
         <activity
             android:name=".main.TestActivity"
-            android:theme="@style/AppTheme.StartingWindowTheme"></activity>
+            android:theme="@style/AppTheme.StartingWindowTheme">
+
+        </activity>
+        <activity android:name=".main.WNaviGuideActivity" >
+
+        </activity>
     </application>
 
 </manifest>

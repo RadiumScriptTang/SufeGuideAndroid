@@ -234,6 +234,5 @@ public class StartActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
     }
-    private void f(){
-    }
+
 }

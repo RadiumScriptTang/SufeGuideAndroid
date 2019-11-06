@@ -32,11 +32,10 @@ import map.baidu.ar.model.PoiInfoImpl;
 
 public class TestActivity extends AppCompatActivity {
     public static JSONArray locationsArray;
-    private float [] accValues = new float[3];
-    private float [] magValue = new float[3];
     private FragmentTransaction fragmentTransaction;
     private MapFragment mapFragment = new MapFragment();
     private ArFragment arFragment = new ArFragment();
+    public static boolean cameraOn = false;
 
     private Sensor orientationSensor = null;
     private SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -46,10 +45,10 @@ public class TestActivity extends AppCompatActivity {
             float xAngel =  Math.abs((float) (Math.round(event.values[1] * 100)) / 100);
             if (xAngel > 60){
                 arFragment.resuemCam();
-                ft.hide(mapFragment).show(arFragment).commit();
+                ft.hide(mapFragment).show(arFragment).commitAllowingStateLoss();
             } else {
                 arFragment.pauseCam();
-                ft.hide(arFragment).show(mapFragment).commit();
+                ft.hide(arFragment).show(mapFragment).commitAllowingStateLoss();
             }
         }
 
@@ -75,6 +74,7 @@ public class TestActivity extends AppCompatActivity {
 
     }
 
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -85,22 +85,13 @@ public class TestActivity extends AppCompatActivity {
         fragmentTransaction = getSupportFragmentManager().beginTransaction();
         fragmentTransaction.add(R.id.fragment_area, mapFragment);
         fragmentTransaction.add(R.id.fragment_area, arFragment);
-        fragmentTransaction.hide(arFragment);
-        fragmentTransaction.commit();
+
+        fragmentTransaction.show(mapFragment).hide(arFragment).commit();
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.hide(mapFragment).show(arFragment).commit();
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        fragmentTransaction = getSupportFragmentManager().beginTransaction();
-        fragmentTransaction.hide(arFragment).show(mapFragment).commit();
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         orientationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
@@ -110,8 +101,24 @@ public class TestActivity extends AppCompatActivity {
 //        startService(new Intent(this, MyService.class));
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
 
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+    }
 
-
+    @Override
+    protected void onStart() {
+        super.onStart();
+        arFragment.pauseCam();
+    }
 }

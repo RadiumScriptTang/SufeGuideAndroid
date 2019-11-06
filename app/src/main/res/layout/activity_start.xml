@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
     android:layout_height="match_parent">
 <ImageView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:src="@drawable/start_img"
+    android:src="@drawable/start_img_2"
     android:scaleType="fitXY"/>
-</android.support.constraint.ConstraintLayout>
+    <TextView
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="数据加载中..."
+        android:layout_marginTop="50dp"
+        android:textColor="#ffffff"
+        android:layout_marginBottom="20dp"
+        android:textSize="24sp"
+        tools:ignore="MissingConstraints" />
+</RelativeLayout>
